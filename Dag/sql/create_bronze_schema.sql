@@ -1,0 +1,2 @@
+CREATE SCHEMA IF NOT EXISTS bronze;
+GRANT USAGE ON SCHEMA bronze TO airflow;    

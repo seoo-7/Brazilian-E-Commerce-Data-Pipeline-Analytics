@@ -1,0 +1,146 @@
+# docker-compose.yaml
+# E-Commerce Analytics Platform with Airflow + Postgres
+
+x-airflow-common: &airflow-common
+  image: my-custom-airflow:2.8.3
+  build:
+    context: .
+    dockerfile: Dockerfile
+  environment: &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@ecommerce-postgres/airflow
+    AIRFLOW__CELERY__RESULT_BACKEND: db+postgresql://airflow:airflow@ecommerce-postgres/airflow
+    AIRFLOW__CELERY__BROKER_URL: redis://:@ecommerce-redis:6379/0
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.basic_auth'
+
+    # Spark configuration
+    PATH: /home/airflow/.local/bin:/opt/spark/bin:/usr/lib/jvm/java-17-openjdk-amd64/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    SPARK_HOME: /opt/spark
+    JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+    # SMTP Configuration
+    AIRFLOW__SMTP__SMTP_HOST: 'smtp.gmail.com'
+    AIRFLOW__SMTP__SMTP_PORT: '587'
+    AIRFLOW__SMTP__SMTP_USER: 'yedsa0881@gmail.com'
+    AIRFLOW__SMTP__SMTP_PASSWORD: 'ukkg piul uupk fllx'
+    AIRFLOW__SMTP__SMTP_MAIL_FROM: 'yedsa0881@gmail.com'
+    AIRFLOW__SMTP__SMTP_STARTTLS: 'True'
+    AIRFLOW__SMTP__SMTP_SSL: 'False'
+
+    _PIP_ADDITIONAL_REQUIREMENTS: ${_PIP_ADDITIONAL_REQUIREMENTS:-}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ./spark_jobs:/opt/airflow/spark_jobs
+    - ./data:/opt/airflow/data
+    - D:/spark:/opt/spark # ✅ Correct - your Spark is at D:/spark
+    - /tmp:/tmp
+  user: "${AIRFLOW_UID:-50000}:0"
+
+services:
+  ecommerce-redis:
+    image: redis:latest
+    container_name: ecommerce-redis
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 30s
+      retries: 50
+    restart: always
+    networks:
+      - ecommerce-network
+
+  ecommerce-postgres:
+    image: postgres:13
+    container_name: ecommerce-postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+      - ./data:/data
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U airflow" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce-network
+
+  airflow-init:
+    <<: *airflow-common
+    container_name: ecommerce-airflow-init
+    command: >
+      bash -c "
+        airflow db init &&
+        airflow users create \
+          --username airflow \
+          --password airflow \
+          --firstname Airflow \
+          --lastname User \
+          --role Admin \
+          --email airflow@example.com
+      "
+    restart: "no"
+    networks:
+      - ecommerce-network
+    depends_on:
+      ecommerce-postgres:
+        condition: service_healthy
+
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: ecommerce-airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: always
+    networks:
+      - ecommerce-network
+    depends_on:
+      - airflow-init
+      - ecommerce-postgres
+
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: ecommerce-airflow-scheduler
+    command: scheduler
+    restart: always
+    networks:
+      - ecommerce-network
+    depends_on:
+      - airflow-init
+      - ecommerce-postgres
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: ecommerce-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: pgadmin@example.com
+      PGADMIN_DEFAULT_PASSWORD: pgadmin
+    ports:
+      - "5050:80"
+    volumes:
+      - ./pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - ecommerce-postgres
+    restart: unless-stopped
+    networks:
+      - ecommerce-network
+
+networks:
+  ecommerce-network:
+    driver: bridge
+    name: ecommerce-analytics-network
+
+volumes:
+  pgdata:
+  pgadmin_data:

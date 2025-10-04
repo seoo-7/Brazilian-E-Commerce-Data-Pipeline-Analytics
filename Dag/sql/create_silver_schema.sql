@@ -1,0 +1,2 @@
+CREATE SCHEMA IF NOT EXISTS silver;
+GRANT USAGE ON SCHEMA silver TO airflow;
