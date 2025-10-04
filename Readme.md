@@ -120,7 +120,7 @@ Automated validation between Silver and Gold layers:
 
 ### Task Flow
 
-![alt text](<Airflow Pipeline.png>)
+<img width="1825" height="730" alt="Airflow Pipeline" src="https://github.com/user-attachments/assets/ed5486ec-e088-461c-8eb7-b083945d8c62" />
 
 ```
 create_bronze_schema
