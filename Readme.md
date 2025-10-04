@@ -151,7 +151,8 @@ ingest_data (Spark)
 ## 📈 Power BI Dashboards
 
 ### Dashboard 1: Sales Analytics
-![alt text](Sales.png)
+<img width="1565" height="805" alt="Sales" src="https://github.com/user-attachments/assets/fa3c59cb-60c3-4449-8779-71d01d31095e" />
+
 
 **KPIs with YoY Analysis:**
 - Total Payments, Sales, Customers, Products
@@ -171,8 +172,9 @@ ingest_data (Spark)
 ---
 
 ### Dashboard 2: Orders & Logistics
+<img width="1362" height="773" alt="Orders" src="https://github.com/user-attachments/assets/0e992f2e-07af-4003-80fa-9ce1b4baceea" />
 
-![alt text](Orders.png)
+
 
 **KPIs with YoY Analysis:**
 - Total Orders, Total Shipping
